@@ -12,11 +12,15 @@ router.get("/", async (req, res, next) => {
 router.get("/:id", async (req, res, next) => {
   const id = req.params.id;
   const contactsId = await contactsMethots.getContactById(id);
-  console.log(id)
+  console.log(id);
   res.status(200).json(contactsId);
 });
 
 router.post("/", async (req, res, next) => {
+  console.log(req);
+  // const contactsId = await contactsMethots.getContactById();
+  // console.log();
+  // res.status(200).json(contactsId);
   res.json({ message: "template message post" });
 });
 
