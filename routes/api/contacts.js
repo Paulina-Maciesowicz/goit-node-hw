@@ -17,15 +17,34 @@ router.get("/:id", async (req, res, next) => {
 });
 
 router.post("/", async (req, res, next) => {
-  console.log(req);
-  // const contactsId = await contactsMethots.getContactById();
-  // console.log();
-  // res.status(200).json(contactsId);
-  res.json({ message: "template message post" });
+  const { name, email, phone } = req.body;
+  if (!name || !email || !phone) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+  try {
+    console.log(req.body.name);
+    const contactsAdded = await contactsMethots.addContact(name, email, phone);
+    res.status(201).json(contactsAdded);
+  } catch (error) {
+    console.error("Error adding contact:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.delete("/:contactId", async (req, res, next) => {
-  res.json({ message: "template message delete" });
+  const contactId = req.params.contactId;
+  try {
+    const contact = await contactsMethots.getContactById(contactId);
+    console.log(contact)
+    if (contact === "") {
+      return res.status(404).json({ error: "Contact not found" });
+    }
+    await contactsMethots.removeContact(contactId);
+    res.status(200).json({ message: "Contact deleted" });
+  } catch (error) {
+    console.error("Error deleting contact:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.put("/:contactId", async (req, res, next) => {

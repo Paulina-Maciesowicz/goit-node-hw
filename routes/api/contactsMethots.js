@@ -16,7 +16,7 @@ async function getContactById(contactId) {
   try {
     const data = await fs.readFile(contactsPath, "utf-8");
     const contacts = JSON.parse(data);
-    console.log(contactId);
+    // console.log(contactId);
     const contact = contacts.find((c) => c.id === contactId);
     if (contact === undefined) {
       return `id ${contactId} not found`;
