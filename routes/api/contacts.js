@@ -36,7 +36,7 @@ router.delete("/:contactId", async (req, res, next) => {
   try {
     const contact = await contactsMethots.getContactById(contactId);
     console.log(contact)
-    if (typeof contact === "test") {
+    if (typeof contact === "string") {
       return res.status(404).json({ error: "Contact not found" });
     }
     await contactsMethots.removeContact(contactId);
