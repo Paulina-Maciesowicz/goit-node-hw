@@ -35,7 +35,7 @@ router.delete("/:contactId", async (req, res, next) => {
   const contactId = req.params.contactId;
   try {
     const contact = await contactsMethots.getContactById(contactId);
-    console.log(contact)
+    console.log(contact);
     if (typeof contact === "string") {
       return res.status(404).json({ error: "Contact not found" });
     }
@@ -48,7 +48,19 @@ router.delete("/:contactId", async (req, res, next) => {
 });
 
 router.put("/:contactId", async (req, res, next) => {
-  res.json({ message: "template message put" });
+  const contactId = req.params.contactId;
+  try {
+    const contact = await contactsMethots.getContactById(contactId);
+    // console.log(contact);
+    if (typeof contact === "string") {
+      return res.status(404).json({ error: "Contact not found" });
+    }
+    await contactsMethots.updateContact(contactId);
+    res.status(200).json({ message: "Contact updated" });
+  } catch (error) {
+    console.error("Error deleting contact:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 module.exports = router;
