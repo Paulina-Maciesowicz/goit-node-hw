@@ -21,8 +21,14 @@ router.post("/", async (req, res, next) => {
     return res.status(400).json({ error: "Missing required fields" });
   }
   try {
-    console.log(req.body.name);
     const contactsAdded = await contactsMethots.addContact(name, email, phone);
+    console.log(typeof contactsAdded);
+    if (contactsAdded === { Error }) {
+      return res.status(400).json("not this time");
+    }
+    if (typeof contactsAdded === "object" && "error" in contactsAdded) {
+      return res.status(400).json({ error: contactsAdded.error });
+    }
     res.status(201).json(contactsAdded);
   } catch (error) {
     console.error("Error adding contact:", error);
