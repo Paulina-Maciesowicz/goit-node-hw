@@ -56,8 +56,8 @@ async function removeContact(contactId) {
 }
 
 async function addContact(name, email, phone) {
+  const validation = schema.validate({ name, email, phone });
   try {
-    const validation = schema.validate({ name, email, phone });
     if (validation.error) {
       console.log(validation.error.message);
       throw new Error(`Validation error: ${validation.error.message}`);
@@ -72,7 +72,7 @@ async function addContact(name, email, phone) {
     return newContact;
   } catch (error) {
     console.error(error);
-    return error;
+    return `Validation error: ${validation.error.message}`;
   }
 }
 
