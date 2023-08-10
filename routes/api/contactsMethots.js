@@ -1,6 +1,16 @@
 const fs = require("fs").promises;
 const path = require("path");
 const contactsPath = path.join(__dirname, "db", "contacts.json");
+const Joi = require("joi");
+
+const schema = Joi.object({
+  name: Joi.string().alphanum().min(3).max(30).required(),
+  email: Joi.string().email({
+    minDomainSegments: 2,
+    tlds: { allow: ["com", "net"] },
+  }),
+  phone: Joi.string().alphanum().min(7).max(12).required(),
+}).with("username", "birth_year");
 
 async function listContacts() {
   try {
@@ -16,7 +26,6 @@ async function getContactById(contactId) {
   try {
     const data = await fs.readFile(contactsPath, "utf-8");
     const contacts = JSON.parse(data);
-    // console.log(contactId);
     const contact = contacts.find((c) => c.id === contactId);
     if (contact === undefined) {
       return `id ${contactId} not found`;
@@ -62,17 +71,24 @@ async function addContact(name, email, phone) {
 }
 
 async function updateContact(contactId, body) {
+  schema.validate(body);
+  console.log(schema.validate(body));
+
   try {
     const data = await fs.readFile(contactsPath, "utf-8");
     const contacts = JSON.parse(data);
     const contact = contacts.findIndex((c) => c.id === contactId);
     console.log(contact);
-    const updatedContacts = contacts((contact) => contact.id !== contactId);
+    const validation = schema.validate(body);
+    if (validation.error) {
+      console.log(validation.error.message);
+      throw new Error(`Validation error: ${validation.error.message}`);
+    }
     if (contact === undefined) {
       return `id ${contactId} not found`;
     }
     contacts[contact] = { ...contacts[contact], ...body };
-    const updatedContactsJSON = JSON.stringify(updatedContacts);
+    const updatedContactsJSON = JSON.stringify(contacts);
 
     await fs.writeFile(contactsPath, updatedContactsJSON);
   } catch (error) {
