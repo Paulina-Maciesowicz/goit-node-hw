@@ -1,16 +1,6 @@
 const fs = require("fs").promises;
 const path = require("path");
 const contactsPath = path.join(__dirname, "db", "contacts.json");
-const Joi = require("joi");
-
-const schema = Joi.object({
-  name: Joi.string().alphanum().min(3).max(30).required(),
-  email: Joi.string().email({
-    minDomainSegments: 2,
-    tlds: { allow: ["com", "net"] },
-  }),
-  phone: Joi.string().alphanum().min(7).max(12).required(),
-}).with("username", "birth_year");
 
 async function listContacts() {
   try {
@@ -55,25 +45,15 @@ async function removeContact(contactId) {
   }
 }
 
-async function addContact(name, email, phone) {
-  const validation = schema.validate({ name, email, phone });
-  try {
-    if (validation.error) {
-      console.log(validation.error.message);
-      throw new Error(`Validation error: ${validation.error.message}`);
-    }
-    const data = await fs.readFile(contactsPath, "utf-8");
-    const contacts = JSON.parse(data);
-    const lastContact = contacts[contacts.length - 1];
-    const newId = parseInt(lastContact.id) + 1;
-    const newContact = { id: newId.toString(), name, email, phone };
-    contacts.push(newContact);
-    await fs.writeFile(contactsPath, JSON.stringify(contacts));
-    return newContact;
-  } catch (error) {
-    console.error(error);
-    return `Validation error: ${validation.error.message}`;
-  }
+async function addContact({ name, email, phone }) {
+  const data = await fs.readFile(contactsPath, "utf-8");
+  const contacts = JSON.parse(data);
+  const lastContact = contacts[contacts.length - 1];
+  const newId = parseInt(lastContact.id) + 1;
+  const newContact = { id: newId.toString(), name, email, phone };
+  contacts.push(newContact);
+  await fs.writeFile(contactsPath, JSON.stringify(contacts));
+  return newContact;
 }
 
 async function updateContact(contactId, body) {
@@ -81,12 +61,6 @@ async function updateContact(contactId, body) {
     const data = await fs.readFile(contactsPath, "utf-8");
     const contacts = JSON.parse(data);
     const contact = contacts.findIndex((c) => c.id === contactId);
-    console.log(contact);
-    const validation = schema.validate(body);
-    if (validation.error) {
-      console.log(validation.error.message);
-      throw new Error(`Validation error: ${validation.error.message}`);
-    }
     if (contact === undefined) {
       return `id ${contactId} not found`;
     }
