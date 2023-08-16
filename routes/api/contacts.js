@@ -13,14 +13,28 @@ const schema = Joi.object({
 }).with("username", "birth_year");
 
 router.get("/", async (req, res, next) => {
-  const contacts = await contactsMethots.listContacts();
-  res.status(200).json(contacts);
+  try {
+    const contacts = await contactsMethots.listContacts();
+    res.status(200).json(contacts);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unknown error occurred" });
+  }
 });
 
 router.get("/:id", async (req, res, next) => {
-  const id = req.params.id;
-  const contactsId = await contactsMethots.getContactById(id);
-  res.status(200).json(contactsId);
+  try {
+    const id = req.params.id;
+    const contact = await contactsMethots.getContactById(id);
+    if (!contact) {
+      res.status(404).json({ message: "Contact not found" });
+    }
+
+    res.status(200).json(contact);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unknown error occurred" });
+  } 
 });
 
 router.post("/", async (req, res, next) => {
@@ -28,6 +42,7 @@ router.post("/", async (req, res, next) => {
     const validation = schema.validate(req.body);
     if (validation.error) {
       res.status(400).json({ error: validation.error.message });
+      return;
     }
     const contactsAdded = await contactsMethots.addContact(req.body);
     res.status(201).json(contactsAdded);
@@ -41,7 +56,7 @@ router.delete("/:contactId", async (req, res, next) => {
   const contactId = req.params.contactId;
   try {
     const contact = await contactsMethots.getContactById(contactId);
-    if (typeof contact === "string") {
+    if (!contact) {
       return res.status(404).json({ error: "Contact not found" });
     }
     await contactsMethots.removeContact(contactId);
@@ -61,18 +76,12 @@ router.put("/:contactId", async (req, res, next) => {
       res.status(400).json({ error: validation.error.message });
     }
     const contact = await contactsMethots.getContactById(contactId);
-    if (typeof contact === "string") {
+    if (!contact) {
       return res.status(404).json({ error: "Contact not found" });
     }
-    const isUpdateRequired = Object.keys(body).some(
-      (key) => contact[key] !== body[key]
-    );
-    if (isUpdateRequired) {
-      await contactsMethots.updateContact(contactId, body);
-      res.status(200).json({ message: "Contact updated" });
-    } else {
-      return res.status(400).json({ message: "missing fields" });
-    }
+
+    await contactsMethots.updateContact(contactId, body);
+    res.status(200).json({ message: "Contact updated" });
   } catch (error) {
     console.error("Error deleting contact:", error);
     res.status(500).json({ error: "Internal server error" });
