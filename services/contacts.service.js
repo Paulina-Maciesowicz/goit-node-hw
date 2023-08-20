@@ -19,9 +19,13 @@ const update = async (id, data) => {
 };
 
 const updateFavorite = async (id, favorite) => {
-  return Contact.findByIdAndUpdate(id, { favorite }, {
-    new: true,
-  });
+  return Contact.findByIdAndUpdate(
+    id,
+    { favorite },
+    {
+      new: true,
+    }
+  );
 };
 
 const remove = async (id) => {

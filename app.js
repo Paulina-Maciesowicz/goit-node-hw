@@ -8,12 +8,6 @@ const contactsRouter = require('./routes/api/contacts')
 const app = express()
 const formatsLogger = app.get('env') === 'development' ? 'dev' : 'short'
 
-const mongoose = require("mongoose");
-const connection = mongoose.connect(process.env.DATABASE_URL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
 app.use(logger(formatsLogger))
 app.use(cors())
 app.use(express.json())
@@ -30,6 +24,11 @@ app.use((err, req, res, next) => {
 app.use("/api/v1", contactRoutes);
 app.use("/api/v1/auth", authRoutes);
 
+const mongoose = require("mongoose");
+const connection = mongoose.connect(process.env.DATABASE_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 connection
   .then(() => {
     console.log("Database connection successful");
