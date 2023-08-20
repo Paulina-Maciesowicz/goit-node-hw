@@ -2,8 +2,6 @@ const express = require('express')
 const logger = require('morgan')
 const cors = require('cors')
 require("dotenv").config();
-const contactRoutes = require("./routes/contacts.routes");
-const authRoutes = require("./routes/auth.routes");
 const contactsRouter = require('./routes/api/contacts')
 const app = express()
 const formatsLogger = app.get('env') === 'development' ? 'dev' : 'short'
@@ -20,9 +18,6 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   res.status(500).json({ message: err.message })
 })
-
-app.use("/api/v1", contactRoutes);
-app.use("/api/v1/auth", authRoutes);
 
 const mongoose = require("mongoose");
 const connection = mongoose.connect(process.env.DATABASE_URL, {
