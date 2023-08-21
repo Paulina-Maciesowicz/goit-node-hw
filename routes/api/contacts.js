@@ -3,20 +3,9 @@ const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
 
-const schema = Joi.object({
-  name: Joi.string().alphanum().min(3).max(30).required(),
-  email: Joi.string().email({
-    minDomainSegments: 2,
-    tlds: { allow: ["com", "net"] },
-  }),
-  phone: Joi.string().alphanum().min(7).max(12).required(),
-  favorite: Joi.boolean().required(),
-}).with("username", "birth_year");
-
 router.get("/", async (req, res, next) => {
   try {
     const contacts = await contactsMethots.listContacts();
-    console.log(contacts);
     res.status(200).json(contacts);
   } catch (error) {
     console.error(error);
@@ -40,6 +29,15 @@ router.get("/:id", async (req, res, next) => {
 });
 
 router.post("/", async (req, res, next) => {
+  const schema = Joi.object({
+    name: Joi.string().min(3).max(30).required(),
+    email: Joi.string().email({
+      minDomainSegments: 2,
+      tlds: { allow: ["com", "net"] },
+    }),
+    phone: Joi.string().alphanum().min(7).max(12).required(),
+    favorite: Joi.boolean().required(),
+  });
   try {
     const validation = schema.validate(req.body);
     if (validation.error) {
@@ -70,6 +68,15 @@ router.delete("/:contactId", async (req, res, next) => {
 });
 
 router.put("/:contactId", async (req, res, next) => {
+  const schema = Joi.object({
+    name: Joi.string().min(3).max(30),
+    email: Joi.string().email({
+      minDomainSegments: 2,
+      tlds: { allow: ["com", "net"] },
+    }),
+    phone: Joi.string().alphanum().min(7).max(12),
+    favorite: Joi.boolean(),
+  });
   const contactId = req.params.contactId;
   const body = req.body;
   try {
@@ -91,6 +98,9 @@ router.put("/:contactId", async (req, res, next) => {
 });
 
 router.patch("/:contactId/favorite", async (req, res, next) => {
+  const schema = Joi.object({
+    favorite: Joi.boolean().required(),
+  });
   const contactId = req.params.contactId;
   const body = req.body.favorite;
   try {
