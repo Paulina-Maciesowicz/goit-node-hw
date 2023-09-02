@@ -77,6 +77,7 @@ router.put("/:contactId", async (req, res, next) => {
     phone: Joi.string().alphanum().min(7).max(12),
     favorite: Joi.boolean(),
   });
+    
   const contactId = req.params.contactId;
   const body = req.body;
   try {
@@ -84,10 +85,12 @@ router.put("/:contactId", async (req, res, next) => {
     if (validation.error) {
       res.status(400).json({ error: validation.error.message });
     }
+
     const contact = await contactsMethots.getContactById(contactId);
     if (!contact) {
       return res.status(404).json({ error: "Contact not found" });
     }
+
 
     await contactsMethots.updateContact(contactId, body);
     res.status(200).json({ message: "Contact updated" });
@@ -113,6 +116,7 @@ router.patch("/:contactId/favorite", async (req, res, next) => {
       return res.status(404).json({ error: "Contact not found" });
     }
     await contactsMethots.updateFavorite(contactId, body);
+
     res.status(200).json({ message: "Contact updated" });
   } catch (error) {
     console.error("Error deleting contact:", error);
