@@ -1,9 +1,34 @@
-const contactsMethots = require("./contactsMethots.js");
+const contactsMethots = require("./contactsMethods.js");
 const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
+const auth = require("../../middlewares/middlewares.js");
 
-router.get("/", async (req, res, next) => {
+const schemaPost = Joi.object({
+  name: Joi.string().min(3).max(30).required(),
+  email: Joi.string().email({
+    minDomainSegments: 2,
+    tlds: { allow: ["com", "net"] },
+  }),
+  phone: Joi.string().alphanum().min(7).max(12).required(),
+  favorite: Joi.boolean().required(),
+});
+
+const schemaPut = Joi.object({
+  name: Joi.string().min(3).max(30),
+  email: Joi.string().email({
+    minDomainSegments: 2,
+    tlds: { allow: ["com", "net"] },
+  }),
+  phone: Joi.string().alphanum().min(7).max(12),
+  favorite: Joi.boolean(),
+});
+
+const schemaPatch = Joi.object({
+  favorite: Joi.boolean().required(),
+});
+
+router.get("/", auth, async (req, res, next) => {
   try {
     const contacts = await contactsMethots.listContacts();
     res.status(200).json(contacts);
@@ -13,7 +38,7 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", auth, async (req, res, next) => {
   try {
     const id = req.params.id;
     const contact = await contactsMethots.getContactById(id);
@@ -28,18 +53,9 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
-  const schema = Joi.object({
-    name: Joi.string().min(3).max(30).required(),
-    email: Joi.string().email({
-      minDomainSegments: 2,
-      tlds: { allow: ["com", "net"] },
-    }),
-    phone: Joi.string().alphanum().min(7).max(12).required(),
-    favorite: Joi.boolean().required(),
-  });
+router.post("/", auth, async (req, res, next) => {
   try {
-    const validation = schema.validate(req.body);
+    const validation = schemaPost.validate(req.body);
     if (validation.error) {
       res.status(400).json({ error: validation.error.message });
       return;
@@ -52,7 +68,7 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.delete("/:contactId", async (req, res, next) => {
+router.delete("/:contactId", auth, async (req, res, next) => {
   const contactId = req.params.contactId;
   try {
     const contact = await contactsMethots.getContactById(contactId);
@@ -67,21 +83,11 @@ router.delete("/:contactId", async (req, res, next) => {
   }
 });
 
-router.put("/:contactId", async (req, res, next) => {
-  const schema = Joi.object({
-    name: Joi.string().min(3).max(30),
-    email: Joi.string().email({
-      minDomainSegments: 2,
-      tlds: { allow: ["com", "net"] },
-    }),
-    phone: Joi.string().alphanum().min(7).max(12),
-    favorite: Joi.boolean(),
-  });
-    
+router.put("/:contactId", auth, async (req, res, next) => {
   const contactId = req.params.contactId;
   const body = req.body;
   try {
-    const validation = schema.validate(req.body);
+    const validation = schemaPut.validate(req.body);
     if (validation.error) {
       res.status(400).json({ error: validation.error.message });
     }
@@ -91,7 +97,6 @@ router.put("/:contactId", async (req, res, next) => {
       return res.status(404).json({ error: "Contact not found" });
     }
 
-
     await contactsMethots.updateContact(contactId, body);
     res.status(200).json({ message: "Contact updated" });
   } catch (error) {
@@ -100,14 +105,11 @@ router.put("/:contactId", async (req, res, next) => {
   }
 });
 
-router.patch("/:contactId/favorite", async (req, res, next) => {
-  const schema = Joi.object({
-    favorite: Joi.boolean().required(),
-  });
+router.patch("/:contactId/favorite", auth, async (req, res, next) => {
   const contactId = req.params.contactId;
   const body = req.body.favorite;
   try {
-    const validation = schema.validate(req.body);
+    const validation = schemaPatch.validate(req.body);
     if (validation.error) {
       res.status(400).json({ error: "missing field favorite" });
     }

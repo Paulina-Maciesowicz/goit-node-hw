@@ -1,23 +1,25 @@
-const express = require('express')
-const logger = require('morgan')
-const cors = require('cors')
+const express = require("express");
+const logger = require("morgan");
+const cors = require("cors");
 require("dotenv").config();
-const contactsRouter = require('./routes/api/contacts')
-const app = express()
-const formatsLogger = app.get('env') === 'development' ? 'dev' : 'short'
+const contactsRouter = require("./routes/api/contacts");
+const registrationRouter = require("./services/registration.js");
+const app = express();
+const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
-app.use(logger(formatsLogger))
-app.use(cors())
-app.use(express.json())
-app.use('/api/contacts', contactsRouter)
+app.use(logger(formatsLogger));
+app.use(cors());
+app.use(express.json());
+app.use("/api/contacts", contactsRouter);
+app.use("/users", registrationRouter);
 
 app.use((req, res) => {
-  res.status(404).json({ message: 'Not found' })
-})
+  res.status(404).json({ message: "Not found" });
+});
 
 app.use((err, req, res, next) => {
-  res.status(500).json({ message: err.message })
-})
+  res.status(500).json({ message: err.message });
+});
 
 const mongoose = require("mongoose");
 const connection = mongoose.connect(process.env.DATABASE_URL, {
@@ -33,4 +35,4 @@ connection
     process.exit(1);
   });
 
-  module.exports = app;
+module.exports = app;
