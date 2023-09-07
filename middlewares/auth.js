@@ -21,7 +21,7 @@ passport.use(
 
 export const auth = (req, res, next) => {
   passport.authenticate("jwt", { session: false }, (error, user) => {
-    const { token } = req.headers?.authorization?.split(" ");
+    const token = req.headers?.authorization?.split(" ")[1];
     if (!user || error || !token || token !== user.token) {
       return res.status(401).json({ message: "Not authorized" });
     }

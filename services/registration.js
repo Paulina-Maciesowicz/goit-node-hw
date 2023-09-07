@@ -78,34 +78,16 @@ router.get("/secret/custom", customAuth, (req, res) =>
 );
 
 router.get("/logout", auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
-    req.user.token = [];
-    await req.user.save();
-    res.sendStatus(204);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server Error" });
-  }
+  res.sendStatus(204);
+  req.user.token = [];
+  await req.user.save();
 });
 
 router.get("/current", auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
-    res.status(200).json({
-      email: req.user.email,
-      subscription: req.user.subscription,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
+  res.status(200).json({
+    email: req.user.email,
+    subscription: req.user.subscription,
+  });
 });
 
 module.exports = router;
