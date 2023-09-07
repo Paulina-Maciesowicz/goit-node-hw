@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const jwt = require("jsonwebtoken");
 const { config } = require("./config.js");
-const { auth, customAuth } = require("../middlewares/middlewares.js");
+const { auth, customAuth } = require("../middlewares/auth.js");
 const { User } = require("./User.js");
 const bcrypt = require("bcrypt");
 const Joi = require("joi");
@@ -83,8 +83,8 @@ router.get("/logout", auth, async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: "Not authorized" });
     }
-    user.token = [];
-    await user.save();
+    req.user.token = [];
+    await req.user.save();
     res.sendStatus(204);
   } catch (error) {
     console.error(error);
@@ -98,9 +98,10 @@ router.get("/current", auth, async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: "Not authorized" });
     }
-    res
-      .status(200)
-      .json({ email: user.email, subscription: user.subscription });
+    res.status(200).json({
+      email: req.user.email,
+      subscription: req.user.subscription,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

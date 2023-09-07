@@ -2,7 +2,7 @@ const contactsMethots = require("./contactsMethods.js");
 const express = require("express");
 const router = express.Router();
 const Joi = require("joi");
-const auth = require("../../middlewares/middlewares.js");
+const auth = require("../../middlewares/auth.js");
 
 const schemaPost = Joi.object({
   name: Joi.string().min(3).max(30).required(),
