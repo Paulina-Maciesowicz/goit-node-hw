@@ -1,12 +1,13 @@
 const { Router } = require("express");
 const jwt = require("jsonwebtoken");
-const { config } = require("./config.js");
-const { auth, customAuth } = require("../middlewares/auth.js");
-const { User } = require("./User.js");
+const config = require("../config");
+// const { auth, customAuth } = require("../middlewares/auth.js");
+const { auth } = require("../middlewares/auth.js");
+const { User } = require("../models/user.model");
 const bcrypt = require("bcrypt");
 const Joi = require("joi");
 
-export const router = Router();
+const router = Router();
 
 const schemaRegistration = Joi.object({
   email: Joi.string().email({
@@ -68,14 +69,14 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/public", (req, res) => res.json({ message: "Public resources" }));
-router.get("/secret/passport", auth, (req, res) =>
-  res.json({ message: "Top secret resources" })
-);
+// router.get("/public", (req, res) => res.json({ message: "Public resources" }));
+// router.get("/secret/passport", auth, (req, res) =>
+//   res.json({ message: "Top secret resources" })
+// );
 
-router.get("/secret/custom", customAuth, (req, res) =>
-  res.json({ message: "Top secret resources", user: req.user.email })
-);
+// router.get("/secret/custom", customAuth, (req, res) =>
+//   res.json({ message: "Top secret resources", user: req.user.email })
+// );
 
 router.get("/logout", auth, async (req, res) => {
   res.sendStatus(204);
