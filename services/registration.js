@@ -6,6 +6,13 @@ const customAuth = require("../middlewares/auth.js");
 const { User } = require("../models/user.model");
 const bcrypt = require("bcrypt");
 const Joi = require("joi");
+const gravatar = require("gravatar");
+const jimp = require("jimp");
+const multer = require("multer");
+const path = require("path");
+const generateUniqueId = require("generate-unique-id");
+// const uploadDir = path.join(process.cwd(), "uploads");
+// const storeImage = path.join(process.cwd(), "images");
 
 const router = Router();
 
@@ -34,10 +41,20 @@ router.post("/signup", async (req, res) => {
       return;
     }
     const { email, password } = req.body;
+    const gravatarAvatar = gravatar.url(email, {
+      s: "200",
+      r: "pg",
+      d: "404",
+    });
+
     const isEmailTaken = await User.findOne({ email });
     if (isEmailTaken) return res.status(409).json({ message: "Email in use" });
     const hashedPassword = await hashPassword(password);
-    const user = await User.create({ email, password: hashedPassword });
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+      gravatarAvatar,
+    });
     return res.status(201).json(sanitizeUser(user));
   } catch (error) {
     console.error(error);
@@ -89,6 +106,46 @@ router.get("/current", auth, async (req, res) => {
     email: req.user.email,
     subscription: req.user.subscription,
   });
+});
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./tmp");
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.originalname);
+  },
+  limits: {
+    fileSize: 1048576,
+  },
+});
+const upload = multer({
+  storage: storage,
+});
+
+router.patch("/avatars", upload.single("picture"), async (req, res) => {
+  try {
+    const avatarPath = path.join(__dirname, "../", req.file.path);
+    const avatar = await jimp.read(avatarPath);
+    await avatar.cover(250, 250).writeAsync(avatarPath);
+
+    const avatarFileName =
+      generateUniqueId() + path.extname(req.file.originalname);
+    const avatarPublicPath = path.join(
+      __dirname,
+      "../public/avatars",
+      avatarFileName
+    );
+    await avatar.writeAsync(avatarPublicPath);
+
+    req.user.avatarURL = `/avatars/${avatarFileName}`;
+    await req.user.save();
+
+    return res.status(200).json({ avatarURL: req.user.avatarURL });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unknown error occurred" });
+  }
 });
 
 module.exports = router;
