@@ -11,8 +11,7 @@ const jimp = require("jimp");
 const multer = require("multer");
 const path = require("path");
 const generateUniqueId = require("generate-unique-id");
-// const uploadDir = path.join(process.cwd(), "uploads");
-// const storeImage = path.join(process.cwd(), "images");
+
 
 const router = Router();
 
