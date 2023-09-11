@@ -12,7 +12,6 @@ const multer = require("multer");
 const path = require("path");
 const generateUniqueId = require("generate-unique-id");
 
-
 const router = Router();
 
 const schemaRegistration = Joi.object({
@@ -95,6 +94,7 @@ router.get("/secret/custom", customAuth, (req, res) =>
 );
 
 router.get("/logout", auth, async (req, res) => {
+  console.log(1000)
   res.sendStatus(204);
   req.user.token = [];
   await req.user.save();
@@ -109,22 +109,28 @@ router.get("/current", auth, async (req, res) => {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "./tmp");
+    cb(null, "./routes/api/tmp");
   },
-  filename: (req, file, cb) => {
-    cb(null, file.originalname);
+  // filename: (req, file, cb) => {
+  //   cb(null, file.originalname);
+  // },
+  filename: function (req, file, cb) {
+    cb(null, generateUniqueId() + path.extname(file.originalname));
   },
-  limits: {
-    fileSize: 1048576,
-  },
+  // limits: {
+  //   fileSize: 1048576,
+  // },
 });
 const upload = multer({
   storage: storage,
 });
 
 router.patch("/avatars", upload.single("picture"), async (req, res) => {
+  console.log(3);
   try {
+    console.log(1);
     const avatarPath = path.join(__dirname, "../", req.file.path);
+    console.log(2);
     const avatar = await jimp.read(avatarPath);
     await avatar.cover(250, 250).writeAsync(avatarPath);
 
@@ -136,11 +142,14 @@ router.patch("/avatars", upload.single("picture"), async (req, res) => {
       avatarFileName
     );
     await avatar.writeAsync(avatarPublicPath);
+    console.log(req.user);
+    // req.user.avatarURL = `/avatars/${avatarFileName}`;
+    // await req.user.save();
 
-    req.user.avatarURL = `/avatars/${avatarFileName}`;
-    await req.user.save();
-
-    return res.status(200).json({ avatarURL: req.user.avatarURL });
+    return res.status(200).json({
+      // avatarURL
+      //   : req.user.avatarURL
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Unknown error occurred" });
