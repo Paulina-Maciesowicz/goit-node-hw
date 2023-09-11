@@ -94,7 +94,7 @@ router.get("/secret/custom", customAuth, (req, res) =>
 );
 
 router.get("/logout", auth, async (req, res) => {
-  console.log(1000)
+  console.log(1000);
   res.sendStatus(204);
   req.user.token = [];
   await req.user.save();
@@ -154,6 +154,19 @@ router.patch("/avatars", upload.single("picture"), async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Unknown error occurred" });
   }
+});
+
+router.get("/verify/:verificationToken", async (req, res) => {
+  const userWithToken = await User.findOne({
+    verificationToken: req.params.verificationToken,
+  });
+  if (!userWithToken) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  userWithToken.verify = true;
+  userWithToken.verificationToken = null;
+  await userWithToken.save();
+  return res.status(200).json({ message: "Verification successful" });
 });
 
 module.exports = router;
