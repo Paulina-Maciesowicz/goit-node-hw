@@ -6,6 +6,9 @@ const contactsRouter = require("./routes/api/contacts");
 const registrationRouter = require("./services/registration.js");
 const app = express();
 const formatsLogger = app.get("env") === "development" ? "dev" : "short";
+const path = require ("path");
+
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use(logger(formatsLogger));
 app.use(cors());
