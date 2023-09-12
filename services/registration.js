@@ -1,12 +1,19 @@
 const { Router } = require("express");
 const jwt = require("jsonwebtoken");
-const { config } = require("./config.js");
-const { auth, customAuth } = require("../middlewares/auth.js");
-const { User } = require("./User.js");
+const config = require("../config");
+const auth = require("../middlewares/auth.js");
+const customAuth = require("../middlewares/auth.js");
+const { User } = require("../models/user.model");
 const bcrypt = require("bcrypt");
 const Joi = require("joi");
+const gravatar = require("gravatar");
+const jimp = require("jimp");
+const multer = require("multer");
+const path = require("path");
+const generateUniqueId = require("generate-unique-id");
+const sendMail = require("./nodemailer.js");
 
-export const router = Router();
+const router = Router();
 
 const schemaRegistration = Joi.object({
   email: Joi.string().email({
@@ -33,10 +40,20 @@ router.post("/signup", async (req, res) => {
       return;
     }
     const { email, password } = req.body;
+    const gravatarAvatar = gravatar.url(email, {
+      s: "200",
+      r: "pg",
+      d: "404",
+    });
+
     const isEmailTaken = await User.findOne({ email });
     if (isEmailTaken) return res.status(409).json({ message: "Email in use" });
     const hashedPassword = await hashPassword(password);
-    const user = await User.create({ email, password: hashedPassword });
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+      gravatarAvatar,
+    });
     return res.status(201).json(sanitizeUser(user));
   } catch (error) {
     console.error(error);
@@ -78,6 +95,7 @@ router.get("/secret/custom", customAuth, (req, res) =>
 );
 
 router.get("/logout", auth, async (req, res) => {
+  console.log(1000);
   res.sendStatus(204);
   req.user.token = [];
   await req.user.save();
@@ -88,6 +106,89 @@ router.get("/current", auth, async (req, res) => {
     email: req.user.email,
     subscription: req.user.subscription,
   });
+});
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./routes/api/tmp");
+  },
+  filename: function (req, file, cb) {
+    cb(null, generateUniqueId() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({
+  storage: storage,
+});
+
+router.patch("/avatars", upload.single("picture"), async (req, res) => {
+  try {
+    const avatarPath = path.join(__dirname, "../", req.file.path);
+    const avatar = await jimp.read(avatarPath);
+    await avatar.cover(250, 250).writeAsync(avatarPath);
+
+    const avatarFileName =
+      generateUniqueId() + path.extname(req.file.originalname);
+    const avatarPublicPath = path.join(
+      __dirname,
+      "../public/avatars",
+      avatarFileName
+    );
+    await avatar.writeAsync(avatarPublicPath);
+    req.user.avatarURL = `/avatars/${avatarFileName}`;
+    await req.user.save();
+
+    return res.status(200).json({
+      avatarURL: req.user.avatarURL,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unknown error occurred" });
+  }
+});
+
+router.get("/verify/:verificationToken", async (req, res) => {
+  const userWithToken = await User.findOne({
+    verificationToken: req.params.verificationToken,
+  });
+  if (!userWithToken) {
+    return res.status(401).json({ error: "User not found" });
+  }
+  userWithToken.verify = true;
+  userWithToken.verificationToken = null;
+  await userWithToken.save();
+  return res.status(200).json({ message: "Verification successful" });
+});
+
+router.post("/verify", async (req, res) => {
+  const { errorEmail } = Joi.object({
+    email: Joi.string().email({
+      minDomainSegments: 2,
+      tlds: { allow: ["com", "net"] },
+    }),
+  }).validate(req.body);
+  if (errorEmail)
+    return res.status(400).json({ message: "missing required field email" });
+
+  const email = req.user.email;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(401).json({ message: "User not found" });
+  if (user.verify) {
+    return res
+      .status(400)
+      .json({ message: "Verification has already been passed" });
+  }
+  const emailToken = generateUniqueId();
+  user.verificationToken = emailToken;
+  await user.save();
+  const veryficationLink = `${process.env.BASE_URL}/users/verify/${emailToken}`;
+  const emailMessage = {
+    to: email,
+    subject: "Your veryfication email",
+    html: `Click to register: <a href="${veryficationLink}">${veryficationLink}</a>`,
+  };
+  await sendMail(emailMessage);
+  res.status(200).json({ message: "Verification email send" });
 });
 
 module.exports = router;
