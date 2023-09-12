@@ -11,6 +11,7 @@ const jimp = require("jimp");
 const multer = require("multer");
 const path = require("path");
 const generateUniqueId = require("generate-unique-id");
+const sendMail = require("./nodemailer.js");
 
 const router = Router();
 
@@ -111,26 +112,18 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "./routes/api/tmp");
   },
-  // filename: (req, file, cb) => {
-  //   cb(null, file.originalname);
-  // },
   filename: function (req, file, cb) {
     cb(null, generateUniqueId() + path.extname(file.originalname));
   },
-  // limits: {
-  //   fileSize: 1048576,
-  // },
 });
+
 const upload = multer({
   storage: storage,
 });
 
 router.patch("/avatars", upload.single("picture"), async (req, res) => {
-  console.log(3);
   try {
-    console.log(1);
     const avatarPath = path.join(__dirname, "../", req.file.path);
-    console.log(2);
     const avatar = await jimp.read(avatarPath);
     await avatar.cover(250, 250).writeAsync(avatarPath);
 
@@ -142,13 +135,11 @@ router.patch("/avatars", upload.single("picture"), async (req, res) => {
       avatarFileName
     );
     await avatar.writeAsync(avatarPublicPath);
-    console.log(req.user);
-    // req.user.avatarURL = `/avatars/${avatarFileName}`;
-    // await req.user.save();
+    req.user.avatarURL = `/avatars/${avatarFileName}`;
+    await req.user.save();
 
     return res.status(200).json({
-      // avatarURL
-      //   : req.user.avatarURL
+      avatarURL: req.user.avatarURL,
     });
   } catch (error) {
     console.error(error);
@@ -161,12 +152,43 @@ router.get("/verify/:verificationToken", async (req, res) => {
     verificationToken: req.params.verificationToken,
   });
   if (!userWithToken) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(401).json({ error: "User not found" });
   }
   userWithToken.verify = true;
   userWithToken.verificationToken = null;
   await userWithToken.save();
   return res.status(200).json({ message: "Verification successful" });
+});
+
+router.post("/verify", async (req, res) => {
+  const { errorEmail } = Joi.object({
+    email: Joi.string().email({
+      minDomainSegments: 2,
+      tlds: { allow: ["com", "net"] },
+    }),
+  }).validate(req.body);
+  if (errorEmail)
+    return res.status(400).json({ message: "missing required field email" });
+
+  const email = req.user.email;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(401).json({ message: "User not found" });
+  if (user.verify) {
+    return res
+      .status(400)
+      .json({ message: "Verification has already been passed" });
+  }
+  const emailToken = generateUniqueId();
+  user.verificationToken = emailToken;
+  await user.save();
+  const veryficationLink = `${process.env.BASE_URL}/users/verify/${emailToken}`;
+  const emailMessage = {
+    to: email,
+    subject: "Your veryfication email",
+    html: `Click to register: <a href="${veryficationLink}">${veryficationLink}</a>`,
+  };
+  await sendMail(emailMessage);
+  res.status(200).json({ message: "Verification email send" });
 });
 
 module.exports = router;
